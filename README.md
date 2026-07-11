@@ -6,6 +6,24 @@ A small native macOS menu bar utility that shows the latest Codex usage limits r
 ![Swift 6](https://img.shields.io/badge/Swift-6-orange)
 ![License MIT](https://img.shields.io/badge/license-MIT-blue)
 
+## Screenshots
+
+### Compact menu bar indicator
+
+<p align="center">
+  <img src="docs/images/codex-limit-menu-bar.png" alt="Codex Limit Bar showing the remaining percentage in the macOS menu bar" width="900">
+</p>
+
+The status item keeps the current five-hour allowance visible without opening Codex.
+
+### Limit details
+
+<p align="center">
+  <img src="docs/images/codex-limit-menu.png" alt="Codex Limit Bar menu with five-hour and seven-day usage, reset times, plan, refresh, and launch-at-login controls" width="360">
+</p>
+
+Open the status item to see both usage windows, local reset times, the current plan, refresh status, and launch-at-login control.
+
 ## Features
 
 - Displays remaining usage for the five-hour and seven-day windows.
