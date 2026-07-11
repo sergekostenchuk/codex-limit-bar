@@ -21,4 +21,3 @@ Thank you for helping improve Codex Limit Bar.
 ## Reporting bugs
 
 Include the macOS version, Codex version, expected behavior, and observed behavior. Redact session content and never attach authentication files.
-

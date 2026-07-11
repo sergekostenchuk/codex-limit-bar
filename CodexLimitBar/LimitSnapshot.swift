@@ -31,4 +31,3 @@ struct LimitSnapshot: Codable, Equatable {
         case limitID
     }
 }
-

@@ -16,4 +16,3 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Last-known snapshot persistence.
 - Launch-at-login support.
 - Local-only JSONL event parsing.
-

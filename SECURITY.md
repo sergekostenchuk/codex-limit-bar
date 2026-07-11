@@ -11,4 +11,3 @@ Please use GitHub's private vulnerability reporting feature instead of a public 
 ## Data access
 
 Codex Limit Bar reads recent JSONL tails from `~/.codex/sessions` and `~/.codex/archived_sessions`. It does not use the network, read authentication files, or access the macOS Keychain.
-

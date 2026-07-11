@@ -20,4 +20,3 @@ shasum -a 256 CodexLimitBar.zip
 ```
 
 Signing identities, Apple account credentials, App Store Connect API keys, and notary profiles must remain outside the repository and GitHub Actions logs.
-

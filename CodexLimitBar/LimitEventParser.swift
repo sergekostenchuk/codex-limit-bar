@@ -48,4 +48,3 @@ enum LimitEventParser {
         return formatter.date(from: string)
     }
 }
-

@@ -11,4 +11,3 @@ final class LimitEventParserTests: XCTestCase {
         XCTAssertEqual(snapshot?.planType, "pro")
     }
 }
-

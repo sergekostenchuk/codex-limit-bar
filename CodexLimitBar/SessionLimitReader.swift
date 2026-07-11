@@ -73,4 +73,3 @@ private extension Data.SubSequence {
         return range(of: bytes) != nil
     }
 }
-

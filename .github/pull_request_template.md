@@ -6,4 +6,3 @@
 - [ ] Tests pass
 - [ ] No credentials or private session content included
 - [ ] User-visible changes documented
-

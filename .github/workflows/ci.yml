@@ -35,4 +35,3 @@ jobs:
             -derivedDataPath .build/DerivedData \
             CODE_SIGNING_ALLOWED=NO \
             test
-
