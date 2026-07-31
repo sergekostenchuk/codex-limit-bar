@@ -27,6 +27,7 @@
     "CodexLimitBar.xcodeproj",
     "CodexLimitBar",
     "CodexLimitBarTests",
+    "docs/images",
     "Info.plist",
     "CHANGELOG.md",
     "CONTRIBUTING.md",

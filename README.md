@@ -6,6 +6,20 @@ A small native macOS menu bar utility that shows the latest Codex usage limits r
 ![Swift 6](https://img.shields.io/badge/Swift-6-orange)
 ![License MIT](https://img.shields.io/badge/license-MIT-blue)
 
+## What's new in 1.1
+
+Codex Limit Bar now keeps the two Codex usage pools separate and adds an experimental forecast for discretionary global limit resets:
+
+- **General Codex / Sol** — the main Codex allowance used by Sol and other standard Codex models remains the primary percentage.
+- **Spark** — GPT-5.3-Codex-Spark has its own allowance and appears beside the main value as `S 95%`.
+- **Reset Radar** — estimates the next possible global reset window, shows a deliberately conservative confidence level, and explains which public signals affected the forecast.
+
+<p align="center">
+  <img src="docs/images/codex-limit-reset-radar.png" alt="Codex Limit Bar showing separate General Codex and Spark limits plus the Reset Radar global reset forecast" width="441">
+</p>
+
+In the example above, the menu bar shows `13% · S 95%`: 13% remains in the General Codex / Sol pool, while 95% remains in the separate Spark pool. The menu below those exact local limits shows the predicted global reset window, confidence, evidence count, latest verified reset, and OpenAI Status update time.
+
 ## Screenshots
 
 ### Compact menu bar indicator
@@ -26,6 +40,8 @@ Open the status item to see both usage windows, local reset times, the current p
 
 ## Features
 
+- Displays the General Codex / Sol allowance separately from the dedicated Spark allowance.
+- Shows both pools in one compact status item, for example `13% · S 95%`.
 - Displays remaining usage for the five-hour and seven-day windows.
 - Shows the local reset time for each window.
 - Refreshes once per minute with a 10-second timer leeway.
