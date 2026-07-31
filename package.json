@@ -1,6 +1,6 @@
 {
   "name": "codex-limit-bar",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "A lightweight native macOS menu bar utility for local Codex usage limits.",
   "license": "MIT",
   "author": "Sergey Kosten",

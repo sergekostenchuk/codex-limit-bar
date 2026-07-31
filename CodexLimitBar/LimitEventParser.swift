@@ -18,6 +18,7 @@ enum LimitEventParser {
             primary: primary,
             secondary: secondary,
             planType: limits["plan_type"] as? String,
+            limitName: limits["limit_name"] as? String,
             limitID: limitID
         )
     }

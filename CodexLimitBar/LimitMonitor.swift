@@ -4,7 +4,7 @@ import ServiceManagement
 
 @MainActor
 final class LimitMonitor {
-    private(set) var snapshot: LimitSnapshot?
+    private(set) var snapshotsByLimitID: [String: LimitSnapshot] = [:]
     private(set) var isRefreshing = false
     private(set) var lastCheckedAt: Date?
     private(set) var errorMessage: String?
@@ -14,7 +14,30 @@ final class LimitMonitor {
     private let reader = SessionLimitReader()
     private var timer: DispatchSourceTimer?
     private var wakeObserver: NSObjectProtocol?
-    private let defaultsKey = "lastLimitSnapshot"
+    private let defaultsKey = "lastLimitSnapshots"
+    private let legacyDefaultsKey = "lastLimitSnapshot"
+
+    var generalSnapshot: LimitSnapshot? {
+        snapshotsByLimitID[LimitSnapshot.generalLimitID]
+    }
+
+    var sparkSnapshot: LimitSnapshot? {
+        snapshotsByLimitID.values
+            .filter(\.isSpark)
+            .max { $0.capturedAt < $1.capturedAt }
+    }
+
+    private var sectionedSnapshots: [(title: String, snapshot: LimitSnapshot)] {
+        var result: [(String, LimitSnapshot)] = []
+        if let general = generalSnapshot { result.append((general.sectionTitle, general)) }
+        if let spark = sparkSnapshot { result.append((spark.sectionTitle, spark)) }
+        return result
+    }
+
+    private var displayRemainingPercent: Int? {
+        if let remaining = generalSnapshot?.primary?.remainingPercent { return remaining }
+        return sparkSnapshot?.primary?.remainingPercent
+    }
 
     init() {
         restoreSnapshot()
@@ -26,25 +49,38 @@ final class LimitMonitor {
     }
 
     var menuTitle: String {
-        guard let primary = snapshot?.primary else { return "Codex —" }
-        return "Codex \(primary.remainingPercent)%"
+        guard let remaining = displayRemainingPercent else { return "Codex —" }
+        return "Codex \(remaining)%"
     }
 
     var compactTitle: String {
-        guard let remaining = snapshot?.primary?.remainingPercent else { return "—" }
-        return "\(remaining)%"
+        guard let general = generalSnapshot?.primary else {
+            return if let spark = sparkSnapshot?.primary?.remainingPercent { "S \(spark)%" } else { "—" }
+        }
+        if let spark = sparkSnapshot?.primary?.remainingPercent {
+            return "\(general.remainingPercent)% · S \(spark)%"
+        }
+        return "\(general.remainingPercent)%"
     }
 
     var statusSymbol: String {
-        guard let remaining = snapshot?.primary?.remainingPercent else { return "gauge.with.dots.needle.0percent" }
+        guard let remaining = displayRemainingPercent else { return "gauge.with.dots.needle.0percent" }
         if remaining <= 10 { return "exclamationmark.triangle.fill" }
         if remaining <= 30 { return "gauge.with.dots.needle.33percent" }
         return "gauge.with.dots.needle.67percent"
     }
 
     var isStale: Bool {
-        guard let capturedAt = snapshot?.capturedAt else { return true }
-        return Date().timeIntervalSince(capturedAt) > 15 * 60
+        guard let latestCapturedAt = snapshotsByLimitID.values.map(\.capturedAt).max() else { return true }
+        return Date().timeIntervalSince(latestCapturedAt) > 15 * 60
+    }
+
+    var hasSnapshots: Bool {
+        !snapshotsByLimitID.isEmpty
+    }
+
+    var sectionSnapshots: [(title: String, snapshot: LimitSnapshot)] {
+        sectionedSnapshots
     }
 
     func refresh() {
@@ -55,17 +91,24 @@ final class LimitMonitor {
 
         Task {
             let found = await Task.detached(priority: .utility) { [reader] in
-                reader.latestSnapshot()
+                reader.latestSnapshots()
             }.value
 
             lastCheckedAt = Date()
             isRefreshing = false
-            if let found {
-                if snapshot == nil || found.capturedAt >= snapshot!.capturedAt {
-                    snapshot = found
-                    persist(found)
+            if found.isEmpty {
+                if snapshotsByLimitID.isEmpty {
+                    errorMessage = "Данные Codex пока не найдены"
                 }
-            } else if snapshot == nil {
+            } else {
+                errorMessage = nil
+                let merged = merge(snapshotsByLimitID, with: found)
+                if merged != snapshotsByLimitID {
+                    snapshotsByLimitID = merged
+                    persist(merged)
+                }
+            }
+            if snapshotsByLimitID.isEmpty && errorMessage == nil {
                 errorMessage = "Данные Codex пока не найдены"
             }
             onChange?()
@@ -106,15 +149,37 @@ final class LimitMonitor {
     }
 
     private func restoreSnapshot() {
-        guard let data = UserDefaults.standard.data(forKey: defaultsKey),
-              let saved = try? JSONDecoder().decode(LimitSnapshot.self, from: data) else { return }
-        snapshot = saved
+        if let data = UserDefaults.standard.data(forKey: defaultsKey),
+           let saved = try? JSONDecoder().decode([String: LimitSnapshot].self, from: data) {
+            snapshotsByLimitID = saved
+            return
+        }
+
+        if let data = UserDefaults.standard.data(forKey: legacyDefaultsKey),
+           let saved = try? JSONDecoder().decode(LimitSnapshot.self, from: data) {
+            snapshotsByLimitID = [saved.limitID: saved]
+        }
     }
 
-    private func persist(_ snapshot: LimitSnapshot) {
-        if let data = try? JSONEncoder().encode(snapshot) {
-            UserDefaults.standard.set(data, forKey: defaultsKey)
+    private func persist(_ snapshots: [String: LimitSnapshot]) {
+        if snapshots.isEmpty {
+            UserDefaults.standard.removeObject(forKey: defaultsKey)
+            return
         }
+        if let data = try? JSONEncoder().encode(snapshots) {
+            UserDefaults.standard.set(data, forKey: defaultsKey)
+            UserDefaults.standard.removeObject(forKey: legacyDefaultsKey)
+        }
+    }
+
+    private func merge(_ current: [String: LimitSnapshot], with discovered: [String: LimitSnapshot]) -> [String: LimitSnapshot] {
+        let cutoff = Date().addingTimeInterval(-8 * 24 * 60 * 60)
+        var merged = current.filter { $0.value.capturedAt >= cutoff }
+        for (id, snapshot) in discovered {
+            if let existing = merged[id], existing.capturedAt >= snapshot.capturedAt { continue }
+            merged[id] = snapshot
+        }
+        return merged
     }
 
     private func updateLaunchAtLoginState() {
