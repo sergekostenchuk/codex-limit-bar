@@ -33,6 +33,8 @@ Open the status item to see both usage windows, local reset times, the current p
 - Stores the last known snapshot for offline display.
 - Supports launch at login through `SMAppService`.
 - Uses a compact native AppKit status item.
+- Adds a low-confidence global reset forecast from verified public reset history and relevant OpenAI Status incidents.
+- Lets you disable Reset Radar completely while keeping local limit monitoring active.
 - Does not read, store, or transmit Codex credentials.
 
 ## How it works
@@ -44,9 +46,13 @@ Codex writes structured `rate_limits` events to JSONL session files under:
 ~/.codex/archived_sessions
 ```
 
-Codex Limit Bar checks only recently modified JSONL files and reads at most the last 4 MB of each candidate. All processing happens locally.
+Codex Limit Bar checks only recently modified JSONL files and reads at most the last 1 MB of each candidate. Limit processing happens locally.
 
 The displayed value is the latest snapshot written by Codex. If Codex has not produced a recent event, the app marks the value as saved rather than live.
+
+Reset Radar requests the public OpenAI Status incidents JSON every 15 minutes. It combines relevant incidents with a small, verified public reset history. The result is an experimental confidence estimate, not an official reset schedule or a guarantee.
+
+Reset Radar can be disabled from the menu. When disabled, its timer stops and the app makes no network requests.
 
 ## Requirements
 
@@ -95,12 +101,14 @@ The npm package contains the Xcode source project; it is not a Node.js runtime o
 
 ## Privacy
 
-The app has no networking code and does not access Codex authentication files or the macOS Keychain. See [SECURITY.md](SECURITY.md) for reporting security issues.
+The app does not access Codex authentication files or the macOS Keychain and does not send local usage data anywhere. Its only network request is a public, unauthenticated OpenAI Status incidents feed used by Reset Radar. See [SECURITY.md](SECURITY.md) for reporting security issues.
 
 ## Limitations
 
 - Codex's local session format is not a guaranteed public API and may change.
 - Values update after Codex writes a new rate-limit event.
+- Reset Radar cannot see account-specific banked reset credits.
+- The global reset forecast is experimental and intentionally capped below 50% confidence without a direct announcement.
 - The app intentionally runs without App Sandbox so it can read `~/.codex` automatically.
 
 ## Contributing

@@ -23,10 +23,10 @@ final class SessionLimitReaderTests: XCTestCase {
     }
 
     func testLatestSnapshotsReturnsNewestPerLimitID() throws {
-        try write(line: generalEvent(limitID: "codex", timestamp: "2026-07-11T10:00:00.000Z", usedPercent: 55), to: "first.jsonl")
-        try write(line: sparkEvent(limitID: "codex_bengalfox", timestamp: "2026-07-11T10:00:00.000Z", usedPercent: 25), to: "first.jsonl")
-        try write(line: generalEvent(limitID: "codex", timestamp: "2026-07-11T11:00:00.000Z", usedPercent: 33), to: "second.jsonl")
-        try write(line: sparkEvent(limitID: "codex_bengalfox", timestamp: "2026-07-11T10:30:00.000Z", usedPercent: 20), to: "second.jsonl")
+        try write(line: generalEvent(limitID: "codex", timestamp: "2026-07-30T10:00:00.000Z", usedPercent: 55), to: "first.jsonl")
+        try write(line: sparkEvent(limitID: "codex_bengalfox", timestamp: "2026-07-30T10:00:00.000Z", usedPercent: 25), to: "first.jsonl")
+        try write(line: generalEvent(limitID: "codex", timestamp: "2026-07-30T11:00:00.000Z", usedPercent: 33), to: "second.jsonl")
+        try write(line: sparkEvent(limitID: "codex_bengalfox", timestamp: "2026-07-30T10:30:00.000Z", usedPercent: 20), to: "second.jsonl")
 
         let reader = SessionLimitReader(homeURL: tempDirectory)
         let snapshots = reader.latestSnapshots()
@@ -37,8 +37,8 @@ final class SessionLimitReaderTests: XCTestCase {
     }
 
     func testReaderKeepsIndependentPercentagesWithEqualValues() throws {
-        try write(line: generalEvent(limitID: "codex", timestamp: "2026-07-11T12:00:00.000Z", usedPercent: 12), to: "rates.jsonl")
-        try write(line: sparkEvent(limitID: "codex_bengalfox", timestamp: "2026-07-11T12:00:00.000Z", usedPercent: 12), to: "rates.jsonl")
+        try write(line: generalEvent(limitID: "codex", timestamp: "2026-07-30T12:00:00.000Z", usedPercent: 12), to: "rates.jsonl")
+        try write(line: sparkEvent(limitID: "codex_bengalfox", timestamp: "2026-07-30T12:00:00.000Z", usedPercent: 12), to: "rates.jsonl")
 
         let reader = SessionLimitReader(homeURL: tempDirectory)
         let snapshots = reader.latestSnapshots()
