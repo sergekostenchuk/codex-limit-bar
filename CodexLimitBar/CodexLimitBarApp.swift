@@ -1,4 +1,5 @@
 import AppKit
+import Darwin
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
@@ -14,6 +15,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func render() {
         guard statusItem != nil, monitor != nil else { return }
+        statusItem.length = monitor.sparkSnapshot == nil ? 52 : 96
         statusItem.button?.title = monitor.compactTitle
         statusItem.button?.image = NSImage(systemSymbolName: monitor.statusSymbol, accessibilityDescription: "Codex limits")
         statusItem.menu = buildMenu()
@@ -21,14 +23,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func buildMenu() -> NSMenu {
         let menu = NSMenu()
-        if let snapshot = monitor.snapshot {
-            if let primary = snapshot.primary { add(window: primary, to: menu) }
-            if let secondary = snapshot.secondary { add(window: secondary, to: menu) }
+        if monitor.hasSnapshots {
+            for (index, snapshotData) in monitor.sectionSnapshots.enumerated() {
+                if index > 0 { menu.addItem(.separator()) }
+                add(section: snapshotData.title, snapshot: snapshotData.snapshot, to: menu)
+            }
             menu.addItem(.separator())
-            if let plan = snapshot.planType {
+            if let plan = monitor.generalSnapshot?.planType {
                 menu.addItem(disabledItem("Тариф: \(plan.capitalized)"))
             }
-            menu.addItem(disabledItem("Данные: \(snapshot.capturedAt.formatted(date: .omitted, time: .shortened))"))
+            if let mostRecentCapturedAt = monitor.sectionSnapshots.map({ $0.snapshot.capturedAt }).max() {
+                menu.addItem(disabledItem("Данные: \(mostRecentCapturedAt.formatted(date: .omitted, time: .shortened))"))
+            }
             if monitor.isStale {
                 menu.addItem(disabledItem("Сохранённый снимок — откройте Codex для обновления"))
             }
@@ -54,6 +60,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         return menu
     }
 
+    private func add(section title: String, snapshot: LimitSnapshot, to menu: NSMenu) {
+        menu.addItem(disabledItem(title))
+        if let plan = snapshot.planType {
+            menu.addItem(disabledItem("Тариф: \(plan.capitalized)"))
+        }
+        menu.addItem(disabledItem("Данные: \(snapshot.capturedAt.formatted(date: .omitted, time: .shortened))"))
+        if let primary = snapshot.primary { add(window: primary, to: menu) }
+        if let secondary = snapshot.secondary { add(window: secondary, to: menu) }
+    }
+
     private func add(window: LimitWindow, to menu: NSMenu) {
         let title: String
         switch window.windowMinutes {
@@ -75,12 +91,41 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func toggleLaunchAtLogin() { monitor.setLaunchAtLogin(!monitor.launchAtLogin) }
 }
 
+private final class SingleInstanceGuard {
+    private let fileDescriptor: Int32
+
+    init?() {
+        let lockFile = FileManager.default.temporaryDirectory.appendingPathComponent("com.codex.limitbar.instance.lock")
+        let path = lockFile.path
+        let createdDescriptor = path.withCString { pathCString in
+            open(pathCString, O_CREAT | O_RDWR, 0o644)
+        }
+
+        guard createdDescriptor >= 0 else { return nil }
+        fileDescriptor = createdDescriptor
+
+        if flock(fileDescriptor, LOCK_EX | LOCK_NB) == -1 {
+            close(fileDescriptor)
+            return nil
+        }
+    }
+
+    deinit {
+        flock(fileDescriptor, LOCK_UN)
+        close(fileDescriptor)
+    }
+}
+
 @main
 @MainActor
 enum CodexLimitBarMain {
+    private static var singleInstanceGuard: SingleInstanceGuard?
     private static var appDelegate: AppDelegate?
 
     static func main() {
+        guard let guardInstance = SingleInstanceGuard() else { return }
+        singleInstanceGuard = guardInstance
+
         let application = NSApplication.shared
         let delegate = AppDelegate()
         appDelegate = delegate
